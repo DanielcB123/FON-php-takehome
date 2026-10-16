@@ -26,3 +26,4 @@ services:
       - "3307:3306"
     volumes:
       - ./sql/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql
+      - ./sql/002_add_customer_status.sql:/docker-entrypoint-initdb.d/002_add_customer_status.sql

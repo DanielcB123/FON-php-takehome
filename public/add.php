@@ -9,6 +9,7 @@ $input  = [
     'company_name'      => '',
     'contact_email'     => '',
     'subscription_plan' => 'starter',
+    'status'            => 'active',
     'monthly_revenue'   => '',
 ];
 
@@ -26,20 +27,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($input['subscription_plan'], PLANS, true)) {
         $errors[] = 'Unknown plan.';
     }
+    if (!in_array($input['status'], STATUSES, true)) {
+        $errors[] = 'Unknown status.';
+    }
     if (!is_numeric($input['monthly_revenue']) || (float) $input['monthly_revenue'] < 0) {
         $errors[] = 'Monthly revenue must be a number of 0 or more.';
     }
 
     if (!$errors) {
         $stmt = db()->prepare(
-            'INSERT INTO customers (company_name, contact_email, subscription_plan, monthly_revenue, created_date)
-             VALUES (:company_name, :contact_email, :subscription_plan, :monthly_revenue, CURDATE())'
+            'INSERT INTO customers (company_name, contact_email, subscription_plan, status, monthly_revenue, created_date)
+             VALUES (:company_name, :contact_email, :subscription_plan, :status, :monthly_revenue, CURDATE())'
         );
         try {
             $stmt->execute([
                 ':company_name'      => $input['company_name'],
                 ':contact_email'     => $input['contact_email'],
                 ':subscription_plan' => $input['subscription_plan'],
+                ':status'            => $input['status'],
                 ':monthly_revenue'   => (float) $input['monthly_revenue'],
             ]);
             header('Location: index.php?msg=added');
@@ -75,6 +80,13 @@ render_header('Add customer');
         <select name="subscription_plan">
             <?php foreach (PLANS as $p): ?>
                 <option value="<?= e($p) ?>" <?= $input['subscription_plan'] === $p ? 'selected' : '' ?>><?= e(ucfirst($p)) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <label>Status
+        <select name="status">
+            <?php foreach (STATUSES as $status): ?>
+                <option value="<?= e($status) ?>" <?= $input['status'] === $status ? 'selected' : '' ?>><?= e(ucfirst($status)) ?></option>
             <?php endforeach; ?>
         </select>
     </label>

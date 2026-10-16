@@ -10,6 +10,8 @@ $pdo  = db();
 // Normalize query params once so all later logic can rely on typed values.
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $plan = $_GET['plan'] ?? '';
+// Optional free-text filter used to search by company name.
+$q    = trim((string) ($_GET['q'] ?? ''));
 
 // Build the WHERE clause for the optional plan filter.
 // BUG (Part 1.4 Security): String interpolation in SQL allowed SQL injection via `plan`.
@@ -35,7 +37,18 @@ if ($plan !== '') {
     }
 }
 
-// Assemble one WHERE clause that works for no filters or a plan filter.
+// Company search is also optional. We use LIKE with surrounding wildcards
+// so partial matches work (e.g. "acme" matches "Acme Logistics").
+if ($q !== '') {
+    $whereParts[] = 'company_name LIKE :q';
+    $params[':q'] = '%' . $q . '%';
+}
+
+// Assemble one WHERE clause that works for:
+// - no filters
+// - only plan
+// - only search
+// - both filters together
 $where = $whereParts ? ('WHERE ' . implode(' AND ', $whereParts)) : '';
 
 // Total row count for pagination.
@@ -73,7 +86,7 @@ $offset = ($page - 1) * PER_PAGE;
 // )->fetchAll();
 //
 // FIX: Prepare/execute with placeholders; keep LIMIT/OFFSET as safe ints.
-$rowsSql = "SELECT id, company_name, contact_email, subscription_plan, monthly_revenue, created_date
+$rowsSql = "SELECT id, company_name, contact_email, subscription_plan, status, monthly_revenue, created_date
             FROM customers {$where}
             ORDER BY company_name ASC
             LIMIT :limit OFFSET :offset";
@@ -95,10 +108,12 @@ $rows = $rowsStmt->fetchAll();
 //     $mrr += (float) $row['monthly_revenue'];
 // }
 //
-// FIX: Calculate MRR from the full customer base.
+// FIX: Calculate MRR from the full customer base, excluding cancelled.
 // This KPI is intentionally independent from list filters/pagination.
 $mrr = (float) $pdo->query(
-    "SELECT COALESCE(SUM(monthly_revenue), 0) FROM customers"
+    "SELECT COALESCE(SUM(monthly_revenue), 0)
+     FROM customers
+     WHERE status <> 'cancelled'"
 )->fetchColumn();
 
 render_header('Customers');
@@ -114,8 +129,11 @@ render_header('Customers');
 </section>
 
 <form method="get" class="filters">
+    <label>Company
+        <input class="filter-control" type="text" name="q" value="<?= e($q) ?>" placeholder="Search company name">
+    </label>
     <label>Plan
-        <select name="plan">
+        <select class="filter-control" name="plan">
             <option value="">All plans</option>
             <?php foreach (PLANS as $p): ?>
                 <option value="<?= e($p) ?>" <?= $plan === $p ? 'selected' : '' ?>><?= e(ucfirst($p)) ?></option>
@@ -131,6 +149,7 @@ render_header('Customers');
             <th>Company</th>
             <th>Contact</th>
             <th>Plan</th>
+            <th>Status</th>
             <th class="num">Monthly</th>
             <th>Since</th>
             <th></th>
@@ -138,7 +157,7 @@ render_header('Customers');
     </thead>
     <tbody>
     <?php if (!$rows): ?>
-        <tr><td colspan="6" class="empty">No customers found.</td></tr>
+        <tr><td colspan="7" class="empty">No customers found.</td></tr>
     <?php endif; ?>
     <?php foreach ($rows as $row): ?>
         <tr>
@@ -146,6 +165,7 @@ render_header('Customers');
             <td><?= e($row['company_name']) ?></td>
             <td><?= e($row['contact_email']) ?></td>
             <td><span class="pill pill-<?= e($row['subscription_plan']) ?>"><?= e(ucfirst($row['subscription_plan'])) ?></span></td>
+            <td><?= e(ucfirst((string) $row['status'])) ?></td>
             <td class="num">$<?= number_format((float) $row['monthly_revenue'], 2) ?></td>
             <td><?= e($row['created_date']) ?></td>
             <td><a href="edit.php?id=<?= (int) $row['id'] ?>">Edit</a></td>
@@ -159,7 +179,7 @@ render_header('Customers');
         <?php if ($i === $page): ?>
             <strong><?= $i ?></strong>
         <?php else: ?>
-            <a href="?page=<?= $i ?>&plan=<?= e($plan) ?>"><?= $i ?></a>
+            <a href="?page=<?= $i ?>&plan=<?= e($plan) ?>&q=<?= urlencode($q) ?>"><?= $i ?></a>
         <?php endif; ?>
     <?php endfor; ?>
 </nav>

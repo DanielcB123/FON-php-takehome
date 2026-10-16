@@ -84,7 +84,7 @@ td.empty { color: var(--muted); text-align: center; padding: 28px; }
     border-radius: 8px;
 }
 .card label { display: block; margin-bottom: 14px; font-size: 13px; color: var(--muted); }
-.card input, .card select, .filters select {
+.card input, .card select, .filters select, .filters input {
     display: block;
     width: 100%;
     margin-top: 4px;

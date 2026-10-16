@@ -29,3 +29,4 @@ function db(): PDO
 }
 
 const PLANS = ['starter', 'growth', 'enterprise'];
+const STATUSES = ['active', 'trialing', 'cancelled'];
