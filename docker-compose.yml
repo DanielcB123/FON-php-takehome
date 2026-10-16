@@ -23,6 +23,6 @@ services:
       MYSQL_USER: app
       MYSQL_PASSWORD: app
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
-      - ./sql:/docker-entrypoint-initdb.d
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql
