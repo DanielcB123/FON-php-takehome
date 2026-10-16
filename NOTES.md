@@ -39,9 +39,9 @@
 - Updated filter control styling so Company and Plan controls have matching presentation.
 
 ## What I would do differently with more time
-- Add integration tests for list filtering/pagination combinations and edit persistence.
-- Add unit-level coverage for query parameter normalization and validation helpers.
 - Add session-backed flash/message handling instead of query-string messages.
+  - Query-string flash messages are user-controlled and can be replayed/bookmarked, so they’re less   trustworthy as one-time UI state.
+  - Session-backed flash is server-controlled and ephemeral (set once, read once), which is the standard Post/Redirect/Get pattern.
 - Add CSRF token helpers (generate, embed hidden input, verify on POST) for add/edit forms.
 - Add a dedicated style treatment for status pills (`active`, `trialing`, `cancelled`) for clearer visual scanning.
 - Refactor duplicated validation logic between add/edit pages into shared helpers.
